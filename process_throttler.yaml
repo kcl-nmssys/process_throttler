@@ -1,0 +1,24 @@
+---
+# Processes using more than this % of CPU are matched
+cpu_percent: 50
+
+# Processes using more than this % of memory are matched
+memory_percent: 50
+
+# After how many seconds should processes be reniced
+renice_after: 120
+
+# After how many seconds should processes be killed
+kill_after: 1800
+
+# Users (in addition to root) whose processes should be ignored
+ignore_users:
+  - zabbix
+  - munge
+  - postfix
+  - chrony
+
+# Process path to ignore
+ignore_procs:
+  - /usr/bin/bash
+  - /usr/sbin/sshd
