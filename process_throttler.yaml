@@ -11,14 +11,15 @@ renice_after: 120
 # After how many seconds should processes be killed
 kill_after: 1800
 
+# Ignore lists are dicts/hashes for speed/ease of lookup
 # Users (in addition to root) whose processes should be ignored
 ignore_users:
-  - zabbix
-  - munge
-  - postfix
-  - chrony
+  zabbix: true
+  munge: true
+  postfix: true
+  chrony: true
 
 # Process path to ignore
 ignore_procs:
-  - /usr/bin/bash
-  - /usr/sbin/sshd
+  /usr/bin/bash: true
+  /usr/sbin/sshd: true
