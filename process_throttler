@@ -3,10 +3,14 @@
 import psutil
 import sys
 import syslog
+import time
 import yaml
 
+# Burnt-in settings
 config_file = '/etc/process_throttler.yaml'
+state_file = '/var/run/process_throttler.yaml'
 
+# Load and do basic validation of config file
 try:
     with open(config_file) as fh:
         config = yaml.load(fh)
@@ -14,10 +18,35 @@ except:
     sys.stderr.write('Failed to load configuration from %s\n' % config_file)
     sys.exit(1)
 
+settings = ['cpu_percent', 'memory_percent', 'renice_after', 'kill_after', 'ignore_users', 'ignore_procs']
+for setting in settings:
+    if setting not in config:
+        sys.stderr.write('Missing configuration item: %s\n' % setting)
+        sys.exit(1)
+
+# Get a first reading for CPU usage
 for proc in psutil.process_iter():
     try:
-        pinfo = proc.as_dict(attrs=['pid', 'name', 'username'])
+        proc.cpu_percent()
     except psutil.NoSuchProcess:
         continue
 
-    
+time.sleep(0.1)
+
+# Now get readings we can use
+for proc in psutil.process_iter():
+    try:
+        pinfo = proc.as_dict(attrs=['cpu_percent', 'exe', 'memory_percent', 'name', 'nice', 'pid', 'username'])
+
+        # Ignore certain users
+        if pinfo['username'] in config['ignore_users']:
+            continue
+
+        # Ignore certain paths
+        if pinfo['exe'] in config['ignore_procs']:
+            continue
+
+        # Calculate average cpu_percent and memory_percent and take action if appropriate
+        # Update state file
+    except psutil.NoSuchProcess:
+        continue
