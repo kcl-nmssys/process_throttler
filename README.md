@@ -11,8 +11,14 @@ Individual users and process paths can be excluded.
 
 ## Setup
 
-The configuration file, `process_throttler.yaml` should be saved to `/etc/`. Place `process_throttler` in `/usr/local/sbin` and create a cron job for the root user:
+### CentOS 7
 
-```
-* * * * * /usr/local/sbin/process_throttler
-```
+Run `build_centos.sh` to create an rpm package that can be installed using yum.
+
+### Manual installation
+
+Copy the files into their correct locations:
+
+1. `bin/process_throttler` -> `/usr/local/sbin`
+2. `etc/cron.d/proccess_throttler` -> `/etc/cron.d`
+3. `etc/process_throttler.yaml` -> `/etc`

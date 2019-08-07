@@ -1,0 +1,3 @@
+# cron job for process_throttler
+MAILTO=root
+*/5 * * * * root /usr/sbin/process_throttler

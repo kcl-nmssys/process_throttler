@@ -1,0 +1,106 @@
+#!/usr/bin/env python3
+#
+# Throttler for CPU and memory-intensive user processes
+# Xand Meaden, King's College London, 2019
+
+import os
+import psutil
+import sys
+import syslog
+import time
+import yaml
+
+# Burnt-in settings
+config_file = '/etc/process_throttler.yaml'
+state_file = '/var/run/process_throttler.yaml'
+
+# Load and do basic validation of config file
+try:
+    with open(config_file) as fh:
+        config = yaml.load(fh)
+except:
+    sys.stderr.write('Failed to load configuration from %s\n' % config_file)
+    sys.exit(1)
+
+settings = ['cpu_percent', 'memory_percent', 'renice_after', 'kill_after', 'ignore_users', 'ignore_procs']
+for setting in settings:
+    if setting not in config:
+        sys.stderr.write('Missing configuration item: %s\n' % setting)
+        sys.exit(1)
+
+# Get state from previous run
+state_prev = {}
+if os.path.exists(state_file):
+    try:
+        with open(state_file) as fh:
+            state_prev = yaml.load(fh)
+    except:
+        sys.stderr.write('Failed to load state file %s' % state_file)
+        sys.exit(1)
+
+# Get a first reading for CPU usage
+for proc in psutil.process_iter():
+    try:
+        proc.cpu_percent()
+    except psutil.NoSuchProcess:
+        continue
+
+time.sleep(1)
+
+state = {}
+now = time.time()
+
+# Now get readings we can use
+for proc in psutil.process_iter():
+    try:
+        pinfo = proc.as_dict(attrs=['cpu_percent', 'create_time', 'exe', 'memory_percent', 'name', 'nice', 'pid', 'uids', 'username'])
+
+    except psutil.NoSuchProcess:
+        continue
+
+    # Ignore system users
+    if pinfo['uids'][0] < 1000:
+        continue
+
+    # Ignore certain users
+    if pinfo['username'] in config['ignore_users']:
+        continue
+
+    # Ignore certain paths
+    if pinfo['exe'] in config['ignore_procs']:
+        continue
+
+    # Don't use just pid as they can be reused
+    proc_id = '%d_%f' % (pinfo['pid'], pinfo['create_time'])
+
+    # Update state
+    seen = 1
+    if proc_id in state_prev:
+        seen = state_prev[proc_id]['seen'] + 1
+        cpu_avg = (state_prev[proc_id]['cpu_avg'] * state_prev[proc_id]['seen'] + pinfo['cpu_percent']) / seen
+        mem_avg = (state_prev[proc_id]['mem_avg'] * state_prev[proc_id]['seen'] + pinfo['memory_percent']) / seen
+    else:
+        cpu_avg = pinfo['cpu_percent']
+        mem_avg = pinfo['memory_percent']
+
+    age = now - pinfo['create_time']
+
+    killed = False
+    if (cpu_avg > config['cpu_percent'] or mem_avg > config['memory_percent']) and age > config['renice_after']:
+        if age > config['kill_after']:
+            syslog.syslog(syslog.LOG_INFO, 'Killed %d (%s) belonging to %s (CPU %d%%, memory %d%%, age %d s)' % (pinfo['pid'], pinfo['exe'], pinfo['username'], cpu_avg, mem_avg, age))
+            proc.kill()
+            killed = True
+        else:
+            if pinfo['nice'] < 19:
+                syslog.syslog(syslog.LOG_INFO, 'Reniced %d (%s) belonging to %s (CPU %d%%, memory %d%%, age %d s)' % (pinfo['pid'], pinfo['exe'], pinfo['username'], cpu_avg, mem_avg, age))
+                proc.nice(19)
+
+    if not killed:
+        state[proc_id] = {}
+        state[proc_id]['seen'] = seen
+        state[proc_id]['cpu_avg'] = cpu_avg
+        state[proc_id]['mem_avg'] = mem_avg
+
+with open(state_file, 'w') as fh:
+    fh.write(yaml.dump(state))

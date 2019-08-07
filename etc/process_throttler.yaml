@@ -1,6 +1,6 @@
 ---
 # Processes using more than this % of CPU are matched
-cpu_percent: 50
+cpu_percent: 30
 
 # Processes using more than this % of memory are matched
 memory_percent: 50
@@ -12,14 +12,11 @@ renice_after: 120
 kill_after: 1800
 
 # Ignore lists are dicts/hashes for speed/ease of lookup
-# Users (in addition to root) whose processes should be ignored
+# Users (in addition to system users) whose processes should be ignored
 ignore_users:
-  zabbix: true
-  munge: true
-  postfix: true
-  chrony: true
+  example: true
 
-# Process path to ignore
+# Process paths to ignore
 ignore_procs:
   /usr/bin/bash: true
   /usr/sbin/sshd: true
