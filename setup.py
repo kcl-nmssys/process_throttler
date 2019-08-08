@@ -4,7 +4,7 @@ import distutils.core
 
 distutils.core.setup(
     name='process_throttler',
-    version='0.1',
+    version='0.2',
     author='Xand Meaden',
     author_email='xand.meaden@kcl.ac.uk',
     url='https://github.com/kcl-nmssys/process_throttler',
