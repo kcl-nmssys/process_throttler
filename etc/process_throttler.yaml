@@ -1,0 +1,22 @@
+---
+# Processes using more than this % of CPU are matched
+cpu_percent: 30
+
+# Processes using more than this % of memory are matched
+memory_percent: 50
+
+# After how many seconds should processes be reniced
+renice_after: 120
+
+# After how many seconds should processes be killed
+kill_after: 1800
+
+# Ignore lists are dicts/hashes for speed/ease of lookup
+# Users (in addition to system users) whose processes should be ignored
+ignore_users:
+  example: true
+
+# Process paths to ignore
+ignore_procs:
+  /usr/bin/bash: true
+  /usr/sbin/sshd: true
